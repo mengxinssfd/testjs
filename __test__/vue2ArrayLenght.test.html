@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>测试Vue2修改数组length是否会更新</title>
+    <script src="https://cdn.staticfile.org/vue/2.6.9/vue.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="list" v-for="item in list" @click="setLen(item)">{{item}}</div>
+    </div>
+    <script>
+      new Vue({
+        el: '#app',
+        data() {
+          return {
+            list: [1, 2, 3, 4, 5],
+          };
+        },
+        methods: {
+          setLen(item) {
+            // 经测试，vue2的数组通过length截断不会更新视图
+            this.list.length = item;
+            console.log(this.list);
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
