@@ -101,26 +101,26 @@ describe('test defineProperty', () => {
     }).toThrowError();
   });
 
-  describe('监听一个对象', () => {
+  // 类似Vue.$set()
+  function $set(obj: any, key: string | number, value: any, getMock: Function, setMock: Function) {
+    Object.defineProperty(obj, key, {
+      enumerable: true,
+      configurable: true,
+      get() {
+        getMock(key, value);
+        return value;
+      },
+      set(val) {
+        value = val;
+        setMock(key, value);
+      },
+    });
+  }
+
+  describe('监听对象', () => {
     const origin = { a: 1, b: 2, c: 3 };
 
     describe('use defineProperty', () => {
-      // 类似Vue.$set()
-      function $set(obj: any, key: string, value: any, getMock: Function, setMock: Function) {
-        Object.defineProperty(obj, key, {
-          enumerable: true,
-          configurable: true,
-          get() {
-            getMock(key, value);
-            return value;
-          },
-          set(val) {
-            value = val;
-            setMock(key, value);
-          },
-        });
-      }
-
       test('不添加额外的key', () => {
         const obj = { ...origin };
         const getMock = jest.fn();
@@ -149,10 +149,10 @@ describe('test defineProperty', () => {
           }, {} as any),
         ).toEqual(origin);
 
-        // expect(obj).toEqual( { a: 1, b: 2, c: 3 });
+        // expect(obj).toEqual( origin);
         // expect(getMock.mock.calls.length).toBe(9); // jest的toEqual可能多遍历了几次
         for (const k in obj) {
-          expect(obj[k]).toEqual({ a: 1, b: 2, c: 3 }[k]);
+          expect(obj[k]).toEqual(origin[k]);
         }
         expect(getMock.mock.calls.length).toBe(6);
       });
@@ -174,16 +174,15 @@ describe('test defineProperty', () => {
         expect(setMock.mock.calls.length).toBe(0);
         expect(getMock.mock.calls.length).toBe(0);
 
-        obj["d"] = "dd";
+        obj['d'] = 'dd';
         expect(setMock.mock.calls.length).toBe(1);
         expect(getMock.mock.calls.length).toBe(0);
 
-        expect(obj["d"]).toBe("dd");
+        expect(obj['d']).toBe('dd');
         expect(getMock.mock.calls.length).toBe(1);
       });
     });
     test('use defineProperties', () => {
-      const origin = { a: 1, b: 2, c: 3 };
       const obj = { ...origin };
       const getMock = jest.fn();
       const setMock = jest.fn();
@@ -225,12 +224,77 @@ describe('test defineProperty', () => {
         }, {} as any),
       ).toEqual(origin);
 
-      // expect(obj).toEqual( { a: 1, b: 2, c: 3 });
+      // expect(obj).toEqual( origin);
       // expect(getMock.mock.calls.length).toBe(9); // jest的toEqual可能多遍历了几次
       for (const k in obj) {
-        expect(obj[k]).toEqual({ a: 1, b: 2, c: 3 }[k]);
+        expect(obj[k]).toEqual(origin[k]);
       }
       expect(getMock.mock.calls.length).toBe(6);
     });
+  });
+
+  describe('监听数组', () => {
+    const origin = [1, 2, 3, 4, 5];
+
+    let arr: number[] = [];
+    let getMock = jest.fn();
+    let setMock = jest.fn();
+
+    beforeEach(() => {
+      arr = [...origin];
+      getMock = jest.fn();
+      setMock = jest.fn();
+      arr.forEach((v, k) => {
+        $set(arr, k, v, getMock, setMock);
+      });
+    });
+
+    test('base', () => {
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(arr[0]).toBe(1);
+      expect(getMock.mock.calls.length).toBe(1);
+
+      // 遍历一次
+      arr.forEach((v, k) => {
+        expect(v).toEqual(origin[k]);
+      });
+      expect(getMock.mock.calls.length).toBe(6);
+    });
+    test('push', () => {
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(setMock.mock.calls.length).toBe(0);
+      // const push = arr.push;
+      arr.push = function (...args) {
+        const index = arr.length;
+
+        args.forEach((v, k) => {
+          setMock(index + k, v);
+          $set(arr, index + k, v, getMock, setMock);
+        });
+
+        return arr.length;
+      };
+      arr.push(6);
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(setMock.mock.calls.length).toBe(1);
+      expect(arr[5]).toBe(6);
+      expect(arr.length).toBe(6);
+      expect(getMock.mock.calls.length).toBe(1);
+      expect(setMock.mock.calls.length).toBe(1);
+    });
+
+    // defineProperty无法设置数组的length
+    // Cannot redefine property: length
+    // TypeError: Cannot redefine property: length
+    /* test('length', () => {
+      $set(arr, 'length', arr.length, getMock, setMock);
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(setMock.mock.calls.length).toBe(0);
+
+      arr.length = 0;
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(arr).toEqual([]);
+    }); */
+
   });
 });
