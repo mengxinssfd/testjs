@@ -9,7 +9,7 @@
       "dom"
     ],
     "target": "esnext",
-    "sourceMap": false,
+    "sourceMap": true, // jest webstorm debugger和报错信息显示必须开启sourcemap
     "allowJs": true,
     // "jsx": "react",
     "moduleResolution": "node",
