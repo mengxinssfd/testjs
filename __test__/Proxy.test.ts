@@ -6,7 +6,7 @@ describe('test Proxy', () => {
     const outSetCall = jest.fn();
     const person = { age: 0, name: 'test' };
     const proxy = new Proxy(person, {
-      get(target: typeof person, p: string | symbol /*, receiver: any*/): any {
+      get(target: typeof person, p: string | symbol /*, receiver: any // Proxy或者继承Proxy的对象 */): any {
         getCall();
         if (p in target) {
           return target[p];
@@ -56,6 +56,9 @@ describe('test Proxy', () => {
 
     proxy['test'] = 30;
     expect(outSetCall.mock.calls.length).toBe(1);
+  });
+  test('array', () => {
+
   });
   describe('bind this', () => {
     class Name {
