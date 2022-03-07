@@ -17,6 +17,7 @@ describe('test defineProperty', () => {
       },
       set: function (val) {
         mockSet();
+        // 用person.name会无限循环
         personName = val;
       },
     });
@@ -98,5 +99,105 @@ describe('test defineProperty', () => {
     expect(() => {
       delete person2.name;
     }).toThrowError();
+  });
+
+  describe('监听一个对象', () => {
+    test('defineProperty', () => {
+      const origin = { a: 1, b: 2, c: 3 };
+      const obj = { ...origin };
+      const getMock = jest.fn();
+      const setMock = jest.fn();
+      Object.keys(obj).forEach((key) => {
+        let value = obj[key];
+        Object.defineProperty(obj, key, {
+          enumerable: true,
+          configurable: true,
+          get() {
+            getMock(key, value);
+            return value;
+          },
+          set(val) {
+            value = val;
+            setMock(key, value);
+          },
+        });
+      });
+
+      // 初始次数
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(setMock.mock.calls.length).toBe(0);
+
+      // 遍历一次
+      const objCopy: any = {};
+      Object.keys(obj).forEach((k) => {
+        objCopy[k] = obj[k];
+      });
+      expect(objCopy).toEqual(origin);
+      // get调用了3次
+      expect(getMock.mock.calls.length).toBe(3);
+      expect(
+        getMock.mock.calls.reduce((pre, [key, value]) => {
+          pre[key] = value;
+          return pre;
+        }, {} as any),
+      ).toEqual(origin);
+
+      // expect(obj).toEqual( { a: 1, b: 2, c: 3 });
+      // expect(getMock.mock.calls.length).toBe(9); // jest的toEqual可能多遍历了几次
+      for (const k in obj) {
+        expect(obj[k]).toEqual({ a: 1, b: 2, c: 3 }[k]);
+      }
+      expect(getMock.mock.calls.length).toBe(6);
+    });
+    test('defineProperties', () => {
+      const origin = { a: 1, b: 2, c: 3 };
+      const obj = { ...origin };
+      const getMock = jest.fn();
+      const setMock = jest.fn();
+
+      const props: PropertyDescriptorMap = {};
+      Object.keys(obj).forEach((key) => {
+        let value = obj[key];
+        props[key] = {
+          enumerable: true,
+          configurable: true,
+          get() {
+            getMock(key, value);
+            return value;
+          },
+          set(val) {
+            value = val;
+            setMock(key, value);
+          },
+        } as PropertyDescriptor;
+      });
+      Object.defineProperties(obj, props);
+
+      // 初始次数
+      expect(getMock.mock.calls.length).toBe(0);
+      expect(setMock.mock.calls.length).toBe(0);
+
+      // 遍历一次
+      const objCopy: any = {};
+      Object.keys(obj).forEach((k) => {
+        objCopy[k] = obj[k];
+      });
+      expect(objCopy).toEqual(origin);
+      // get调用了3次
+      expect(getMock.mock.calls.length).toBe(3);
+      expect(
+        getMock.mock.calls.reduce((pre, [key, value]) => {
+          pre[key] = value;
+          return pre;
+        }, {} as any),
+      ).toEqual(origin);
+
+      // expect(obj).toEqual( { a: 1, b: 2, c: 3 });
+      // expect(getMock.mock.calls.length).toBe(9); // jest的toEqual可能多遍历了几次
+      for (const k in obj) {
+        expect(obj[k]).toEqual({ a: 1, b: 2, c: 3 }[k]);
+      }
+      expect(getMock.mock.calls.length).toBe(6);
+    });
   });
 });
