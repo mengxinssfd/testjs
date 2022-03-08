@@ -6,7 +6,10 @@ describe('test Proxy', () => {
     const outSetCall = jest.fn();
     const person = { age: 0, name: 'test' };
     const proxy = new Proxy(person, {
-      get(target: typeof person, p: string | symbol /*, receiver: any // Proxy或者继承Proxy的对象 */): any {
+      get(
+        target: typeof person,
+        p: string | symbol /*, receiver: any // Proxy或者继承Proxy的对象 */,
+      ): any {
         getCall();
         if (p in target) {
           return target[p];
@@ -56,16 +59,95 @@ describe('test Proxy', () => {
 
     proxy['test'] = 30;
     expect(outSetCall.mock.calls.length).toBe(1);
+
+
+    expect(getCall.mock.calls.length).toBe(4);
+    expect(Reflect.get(proxy,"test")).toBe(30);
+    expect(getCall.mock.calls.length).toBe(5);
   });
   test('array', () => {
+    const arr = [1, 2, 3];
 
+    const getCall = jest.fn();
+    const setCall = jest.fn();
+
+    function callParams(fn: jest.Mock): () => string[] {
+      return () => fn.mock.calls.map((item) => item[0]);
+    }
+    const getCallParams = callParams(getCall);
+    const setCallParams = callParams(setCall);
+
+    const setParamsArr: string[] = [];
+    const getParamsArr: string[] = [];
+
+    const proxy = new Proxy(arr, {
+      get(target: typeof arr, p: string | symbol): any {
+        getCall(`get ${p as string}`);
+        return target[p];
+      },
+      set(target: typeof arr, p: string | symbol, value: any): boolean {
+        setCall(`set ${p as string}`);
+        target[p] = value;
+        return true;
+      },
+    });
+
+    expect(getCall.mock.calls.length).toBe(0);
+    expect(setCall.mock.calls.length).toBe(0);
+
+    // 操作：设置数组长度
+    proxy.length = 1;
+    expect(getCall.mock.calls.length).toBe(0);
+    expect(setCall.mock.calls.length).toBe(1);
+    setParamsArr.push('set length');
+    expect(setCallParams()).toEqual(setParamsArr);
+    expect(getCallParams()).toEqual(getParamsArr);
+
+    // 操作：使用map生成一个数组
+    // expect(proxy).toEqual([1]); // toEqual遍历次数有点多
+    expect(proxy.map((v) => v)).toEqual([1]);
+    getParamsArr.push('get map', 'get length', 'get constructor', 'get 0');
+    expect(setCallParams()).toEqual(setParamsArr);
+    expect(getCallParams()).toEqual(getParamsArr);
+
+    // 操作：set proxy[0]
+    proxy[0] = 0;
+    setParamsArr.push('set 0');
+    expect(setCall.mock.calls.length).toBe(2);
+    expect(setCallParams()).toEqual(setParamsArr);
+    expect(getCallParams()).toEqual(getParamsArr);
+
+    // 操作：get proxy[0]
+    expect(proxy[0]).toBe(0);
+    getParamsArr.push('get 0');
+    expect(setCallParams()).toEqual(setParamsArr);
+    expect(getCallParams()).toEqual(getParamsArr);
+
+    // 操作：push(2)
+    proxy.push(2);
+    getParamsArr.push('get push', 'get length');
+    setParamsArr.push('set 1', 'set length');
+
+    // 操作：proxy[0]++
+    proxy[0]++;
+    getParamsArr.push('get 0');
+    setParamsArr.push('set 0');
+
+    // 操作：get proxy[0]
+    expect(proxy[0]).toBe(1);
+    getParamsArr.push('get 0');
+
+    expect(setCallParams()).toEqual(setParamsArr);
+    expect(getCallParams()).toEqual(getParamsArr);
   });
   describe('bind this', () => {
     class Name {
       constructor(public firstName: string, public lastName: string) {}
+
       get fullName() {
         return this.firstName + ' ' + this.lastName;
       }
+
       this() {
         return this;
       }
