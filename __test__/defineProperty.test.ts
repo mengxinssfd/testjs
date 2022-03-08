@@ -155,6 +155,12 @@ describe('test defineProperty', () => {
           expect(obj[k]).toEqual(origin[k]);
         }
         expect(getMock.mock.calls.length).toBe(6);
+
+        expect(setMock.mock.calls.length).toBe(0);
+        obj.a++;
+        expect(obj.a).toBe(2);
+        expect(getMock.mock.calls.length).toBe(8);
+        expect(setMock.mock.calls.length).toBe(1);
       });
 
       test('添加额外的key', () => {
