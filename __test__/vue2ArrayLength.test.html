@@ -7,7 +7,10 @@
   </head>
   <body>
     <div id="app">
-      <div class="list" v-for="item in list" @click="setLen(item)">{{item}}</div>
+      <!--<div class="list" v-for="(item,index) in list" @click="setLen(index)">{{item}}</div>-->
+      <div class="list" v-for="(item,index) in list" :key="index" @click="itemPlus(index)">
+        {{item}}
+      </div>
     </div>
     <script>
       new Vue({
@@ -22,6 +25,11 @@
             // 经测试，vue2的数组通过length截断不会更新视图
             this.list.length = item;
             console.log(this.list);
+          },
+          itemPlus(index) {
+            // 经测试，vue2数组通过[index]设置不会更新视图
+            this.list[index] = this.list[index] + 1;
+            console.log(this.list[index]);
           },
         },
       });
