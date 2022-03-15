@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>测试Vue3修改子对象是否会更新</title>
+    <script src="https://cdn.staticfile.org/vue/3.2.31/vue.global.prod.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div @click="add">{{obj.sub.num}}</div>
+    </div>
+    <script>
+      const app = Vue.createApp({
+        setup() {
+          const obj = Vue.reactive({ sub: { num: 1 } });
+          const sub = obj.sub;
+          return {
+            obj,
+            add() {
+              // 经测试：会更新视图，猜测vue3的proxy有递归proxy
+              sub.num++;
+            },
+          };
+        },
+      });
+      app.mount('#app');
+    </script>
+  </body>
+</html>

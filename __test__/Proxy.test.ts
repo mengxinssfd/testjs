@@ -60,10 +60,48 @@ describe('test Proxy', () => {
     proxy['test'] = 30;
     expect(outSetCall.mock.calls.length).toBe(1);
 
-
     expect(getCall.mock.calls.length).toBe(4);
-    expect(Reflect.get(proxy,"test")).toBe(30);
+    expect(Reflect.get(proxy, 'test')).toBe(30);
     expect(getCall.mock.calls.length).toBe(5);
+  });
+  test('test sub object', () => {
+    const obj = { name: 'obj', sub: { name: 'sub' } };
+    const getCall = jest.fn();
+    const setCall = jest.fn();
+    const proxy = new Proxy(obj, {
+      get(
+        target: typeof obj,
+        p: string | symbol /*, receiver: any // Proxy或者继承Proxy的对象 */,
+      ): any {
+        getCall(p);
+        if (p in target) {
+          return target[p];
+        }
+        return 0;
+      },
+      set(target: typeof obj, p: string | symbol, value: any /*, receiver: any*/): boolean {
+        setCall(p);
+        target[p] = value;
+        return true;
+      },
+    });
+
+    expect(proxy.sub.name).toBe('sub');
+    expect(getCall.mock.calls.length).toBe(1);
+    expect(getCall.mock.calls[0][0]).toBe('sub');
+
+    const sub = proxy.sub;
+    expect(getCall.mock.calls.length).toBe(2);
+    expect(getCall.mock.calls[1][0]).toBe('sub');
+
+    sub.name = "test";
+    // 未触发get
+    expect(getCall.mock.calls.length).toBe(2);
+    expect(getCall.mock.calls[1][0]).toBe('sub');
+    // 未触发set
+    // 取出来以后就不会再触发proxy的钩子，也就是说不会递归proxy
+    // vue3的可以(见vue3Proxy.test.html)，可能是递归proxy了
+    expect(setCall.mock.calls.length).toBe(0);
   });
   test('array', () => {
     const arr = [1, 2, 3];
