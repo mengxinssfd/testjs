@@ -122,6 +122,9 @@ describe('test defineProperty', () => {
 
     describe('use defineProperty', () => {
       test('不添加额外的key', () => {
+        /**
+         * @type {{a: number, b: number, c: number}}
+         */
         const obj = { ...origin };
         const getMock = jest.fn();
         const setMock = jest.fn();

@@ -24,3 +24,5 @@
 - [ ] Function
   - [x] [apply](__test__/apply.test.ts)
         测试 `Function.apply` 的伪数组用法
+
+- [ ] Worker
