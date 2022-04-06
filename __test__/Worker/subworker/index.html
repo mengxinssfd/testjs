@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>test Worker</title>
+  </head>
+  <body>
+    <script>
+    const worker = new Worker('./first.js');
+    worker.addEventListener('message', (e) => {
+      console.log('-----', e.data, '-----');
+    });
+    worker.postMessage('hello im main');
+    </script>
+  </body>
+</html>
