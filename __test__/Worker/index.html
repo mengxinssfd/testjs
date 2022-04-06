@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>test Worker</title>
+  </head>
+  <body>
+    <!--base-->
+    <script>
+      const worker = new Worker('./base/index.js');
+      worker.addEventListener('message', (e) => {
+        console.log(e.data);
+      });
+      worker.postMessage('hello worker');
+      // 关闭worker
+      // worker发送接收是异步的，马上关闭的话就接收不了消息了
+      setTimeout(() => worker.terminate(), 500);
+    </script>
+    <!--subworker-->
+    <script>
+      const worker2 = new Worker('./subworker/first.js');
+      worker2.addEventListener('message', (e) => {
+        console.log('-----', e.data, '-----');
+      });
+      worker2.postMessage('hello im main');
+    </script>
+  </body>
+</html>
