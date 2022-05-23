@@ -1,5 +1,3 @@
-//
-
 // 可以使用Object.create实现继承
 describe('create', () => {
   test('基础用法', () => {
@@ -55,5 +53,16 @@ describe('create', () => {
     expect(() => Object.create(true as any)).toThrow();
     expect(() => Object.create('1' as any)).toThrow();
     expect(() => Object.create(/123/ as any)).toThrow();
+  });
+  test('使用create(null)创建纯净的对象', () => {
+    (Object.prototype as any).test = function (msg) {
+      return msg;
+    };
+    const obj = {};
+    expect('test' in obj).toBeTruthy();
+    expect((obj as any).test('hello')).toBe('hello');
+
+    const obj2 = Object.create(null);
+    expect('test' in obj2).toBeFalsy();
   });
 });
