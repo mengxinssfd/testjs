@@ -100,6 +100,58 @@ describe('test defineProperty', () => {
       delete person2.name;
     }).toThrowError();
   });
+  test('getOwnPropertyDescriptor 同一个属性多次defineProperty', () => {
+    let codeType = 'number';
+    const model = {
+      codeType,
+      code: '123',
+      test: '333',
+    };
+    // 设置codeType时，把code清空
+    Object.defineProperty(model, 'codeType', {
+      set(value) {
+        model.code = '';
+        codeType = value;
+      },
+      get() {
+        return codeType;
+      },
+    });
+    const prop = Object.getOwnPropertyDescriptor(model, 'codeType');
+
+    // 什么都不做
+    Object.defineProperty(model, 'codeType', {
+      set(value: any) {
+        (prop as any).set(value);
+        codeType = value;
+      },
+      get() {
+        return codeType;
+      },
+    });
+
+    model.codeType = 'char';
+    expect(model.code).toBe('');
+    expect(model.test).toBe('333');
+
+    model.code = '1111';
+    const prop2 = Object.getOwnPropertyDescriptor(model, 'codeType');
+    // 设置codeType时，把test设为666
+    Object.defineProperty(model, 'codeType', {
+      set(value: any) {
+        (prop2 as any).set(value);
+        model.test = '666';
+        codeType = value;
+      },
+      get() {
+        return codeType;
+      },
+    });
+
+    model.codeType = 'number';
+    expect(model.code).toBe('');
+    expect(model.test).toBe('666');
+  });
 
   // 类似Vue.$set()
   function $set(obj: any, key: string | number, value: any, getMock: Function, setMock: Function) {
@@ -304,6 +356,5 @@ describe('test defineProperty', () => {
       expect(getMock.mock.calls.length).toBe(0);
       expect(arr).toEqual([]);
     }); */
-
   });
 });
