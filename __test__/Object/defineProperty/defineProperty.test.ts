@@ -153,25 +153,26 @@ describe('test defineProperty', () => {
     expect(model.test).toBe('666');
   });
 
-  test('watch', () => {
-    const log = jest.fn();
-
-    function watch<T>(target: T, watch: { [K in keyof T]?: (newVal: T[K], oldVal: T[K]) => void }) {
+  describe('watch', () => {
+    function watch<T>(
+      target: T,
+      handlers: { [K in keyof T]?: (newVal: T[K], oldVal: T[K]) => void },
+    ) {
       const ds = Object.getOwnPropertyDescriptors(target);
 
       const copyTarget = Object.assign({}, target);
 
-      const p = Object.keys(watch).reduce((prev, key) => {
+      const p = Object.keys(handlers).reduce((prev, key) => {
         prev[key] = {
           get() {
             ds?.[key]?.get?.();
-            copyTarget[key];
+            return copyTarget[key];
           },
           set(value) {
             ds?.[key]?.set?.(value);
             const oldValue = copyTarget[key];
             copyTarget[key] = value;
-            watch[key](value, oldValue);
+            handlers[key](value, oldValue);
           },
         };
         return prev;
@@ -182,55 +183,94 @@ describe('test defineProperty', () => {
       return target;
     }
 
-    const obj = { a: 1, b: 10 };
+    test('base', () => {
+      const log = jest.fn();
 
-    Object.defineProperty(obj, 'a', {
-      set(value) {
-        log('set a', value);
-      },
-      get() {
-        log('get a');
-        return 1;
-      },
+      const obj = { a: 1, b: 10 };
+
+      Object.defineProperty(obj, 'a', {
+        set(value) {
+          log('set a', value);
+        },
+        get() {
+          log('get a');
+          return 1;
+        },
+      });
+      watch(obj, {
+        a(n, o) {
+          log('watch a', n, o);
+        },
+        b(n, o) {
+          log('watch b', n, o);
+        },
+      });
+
+      obj.a = 2;
+      obj.a = 3;
+      obj.a = 4;
+      obj.a = 5;
+
+      obj.b = 9;
+      obj.b = 8;
+      obj.b = 7;
+      obj.b = 6;
+
+      log(obj.a);
+      expect(log.mock.calls).toEqual([
+        ['get a'],
+
+        ['set a', 2],
+        ['watch a', 2, 1],
+        ['set a', 3],
+        ['watch a', 3, 2],
+        ['set a', 4],
+        ['watch a', 4, 3],
+        ['set a', 5],
+        ['watch a', 5, 4],
+        ['watch b', 9, 10],
+        ['watch b', 8, 9],
+        ['watch b', 7, 8],
+        ['watch b', 6, 7],
+
+        ['get a'],
+        [5],
+      ]);
     });
-    watch(obj, {
-      a(n, o) {
-        log('watch a', n, o);
-      },
-      b(n, o) {
-        log('watch b', n, o);
-      },
+
+    test('多重watch', () => {
+      const log = jest.fn();
+      const obj = { a: 0 };
+      watch(obj, {
+        a(n, o) {
+          log('1', n, o);
+        },
+      });
+      watch(obj, {
+        a(n, o) {
+          log(2, n, o);
+        },
+      });
+
+      obj.a = 1;
+      obj.a = 2;
+      obj.a = 3;
+      obj.a = 4;
+      obj.a = 5;
+
+      expect(log.mock.calls).toEqual([
+        ['1', 1, 0],
+        [2, 1, 0],
+        ['1', 2, 1],
+        [2, 2, 1],
+        ['1', 3, 2],
+        [2, 3, 2],
+        ['1', 4, 3],
+        [2, 4, 3],
+        ['1', 5, 4],
+        [2, 5, 4],
+      ]);
     });
-
-    obj.a = 2;
-    obj.a = 3;
-    obj.a = 4;
-    obj.a = 5;
-
-    obj.b = 9;
-    obj.b = 8;
-    obj.b = 7;
-    obj.b = 6;
-
-    console.log(obj.a);
-    expect(log.mock.calls).toEqual([
-      ['get a'],
-
-      ['set a', 2],
-      ['watch a', 2, 1],
-      ['set a', 3],
-      ['watch a', 3, 2],
-      ['set a', 4],
-      ['watch a', 4, 3],
-      ['set a', 5],
-      ['watch a', 5, 4],
-      ['watch b', 9, 10],
-      ['watch b', 8, 9],
-      ['watch b', 7, 8],
-      ['watch b', 6, 7],
-
-      ['get a'],
-    ]);
   });
 
   // 类似Vue.$set()
