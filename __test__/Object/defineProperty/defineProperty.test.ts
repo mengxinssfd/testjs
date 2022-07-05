@@ -153,6 +153,86 @@ describe('test defineProperty', () => {
     expect(model.test).toBe('666');
   });
 
+  test('watch', () => {
+    const log = jest.fn();
+
+    function watch<T>(target: T, watch: { [K in keyof T]?: (newVal: T[K], oldVal: T[K]) => void }) {
+      const ds = Object.getOwnPropertyDescriptors(target);
+
+      const copyTarget = Object.assign({}, target);
+
+      const p = Object.keys(watch).reduce((prev, key) => {
+        prev[key] = {
+          get() {
+            ds?.[key]?.get?.();
+            copyTarget[key];
+          },
+          set(value) {
+            ds?.[key]?.set?.(value);
+            const oldValue = copyTarget[key];
+            copyTarget[key] = value;
+            watch[key](value, oldValue);
+          },
+        };
+        return prev;
+      }, {});
+
+      Object.defineProperties(target, p);
+
+      return target;
+    }
+
+    const obj = { a: 1, b: 10 };
+
+    Object.defineProperty(obj, 'a', {
+      set(value) {
+        log('set a', value);
+      },
+      get() {
+        log('get a');
+        return 1;
+      },
+    });
+    watch(obj, {
+      a(n, o) {
+        log('watch a', n, o);
+      },
+      b(n, o) {
+        log('watch b', n, o);
+      },
+    });
+
+    obj.a = 2;
+    obj.a = 3;
+    obj.a = 4;
+    obj.a = 5;
+
+    obj.b = 9;
+    obj.b = 8;
+    obj.b = 7;
+    obj.b = 6;
+
+    console.log(obj.a);
+    expect(log.mock.calls).toEqual([
+      ['get a'],
+
+      ['set a', 2],
+      ['watch a', 2, 1],
+      ['set a', 3],
+      ['watch a', 3, 2],
+      ['set a', 4],
+      ['watch a', 4, 3],
+      ['set a', 5],
+      ['watch a', 5, 4],
+      ['watch b', 9, 10],
+      ['watch b', 8, 9],
+      ['watch b', 7, 8],
+      ['watch b', 6, 7],
+
+      ['get a'],
+    ]);
+  });
+
   // 类似Vue.$set()
   function $set(obj: any, key: string | number, value: any, getMock: Function, setMock: Function) {
     Object.defineProperty(obj, key, {
